@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 2,
+  "channel": "production",
+  "provenance": {
+    "kind": "legacy-composite-production-bootstrap",
+    "retirementBoundary": "delete the bootstrap-only adapter after the first certified schemaVersion 1 production publication replaces this artifact",
+    "sources": {
+      "codex": {
+        "repository": "comment-hq/comment-io-codex-plugin",
+        "ref": "refs/heads/main",
+        "publicSha": "291f431efe79109a18ff24fa9181dd4f75069c78",
+        "publicTree": "8d02b769c53febdb9353bf939c836b2a645644db",
+        "publishedVersion": "1.0.10",
+        "publishedDigest": "sha256:eeaa5ea39f735c7e333ea6af9e00d1a5e328b24a73f0f85dcc8f1eb0eb155a6c",
+        "sourceSha": "b30ee5cc55fd85c14d35ab155afed016c33c8c8a",
+        "certifiedDigest": "sha256:56d56c55bc4c007c52e709d089b15dd6b5a0a61cc748133c2e846cebff94c82c"
+      },
+      "claudeCode": {
+        "repository": "comment-hq/comment-io-claude-code-plugin",
+        "ref": "refs/heads/main",
+        "publicSha": "4894620ec3ec8792dfb8aa914f42472df54f46c0",
+        "publicTree": "19c2e81c9366998c196b96051d7c7f32742873a7",
+        "publishedVersion": "2.0.7",
+        "publishedDigest": "sha256:f21ba0bd4284d0ee4dd8ce8b0efe9044ad35a7f8d3d35bba7775a8a7e907877f",
+        "sourceSha": "cebde492dc44194e4e03840117f1e563e8fc8952",
+        "certifiedDigest": "sha256:7b62ee2fcfed9486d7ce376cf9070615cf1285321b9ff333001070319e343a64"
+      }
+    }
+  },
+  "origin": "https://comment.io",
+  "hosts": {
+    "codex": {
+      "packagePath": "plugins/comment-codex",
+      "catalogPath": ".agents/plugins/marketplace.json",
+      "version": "1.0.10+sha256.94de8be6eb3e0639e7d69675c5ea5abdc73c16cb5a906779d7f758c25102d13d",
+      "digest": "sha256:39630c5ccea6502f2fd47255094c56ba2c526e5b5859b8b794de12fe009fb204"
+    },
+    "claudeCode": {
+      "packagePath": "plugins/comment-claude-code",
+      "catalogPath": ".claude-plugin/marketplace.json",
+      "version": "2.0.7+sha256.3396f1807ff79ac1f03cd01dc48fac0907a7dfde5f5e22798ef4761d2a502d95",
+      "digest": "sha256:541a2df1221cc5b10b2835fe7a7b600b636fd40fa20fc20952adc1a042f17783"
+    }
+  }
+}
