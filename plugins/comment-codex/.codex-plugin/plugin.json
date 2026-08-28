@@ -1,0 +1,41 @@
+{
+  "name": "comment-codex",
+  "version": "1.0.0+sha256.c5879932c46906d346369d50ae2925c20af9ae09c91d5298e9cd053c73e7dcd9",
+  "description": "Comment.io collaboration and exact-thread listening for Codex, including Codex Cloud.",
+  "author": {
+    "name": "Comment.io",
+    "email": "hello@comment.io",
+    "url": "https://comment.io"
+  },
+  "homepage": "https://comment.io",
+  "repository": "https://github.com/comment-hq/comment-io-plugins",
+  "license": "MIT",
+  "keywords": [
+    "comment.io",
+    "documents",
+    "collaboration",
+    "mentions"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Comment.io",
+    "shortDescription": "Collaborate in Comms and wake this exact thread.",
+    "longDescription": "Create and edit Comment.io Comms, connect hosted Comment.io tools, and wake an eligible exact Codex thread, including in Codex Cloud.",
+    "developerName": "Comment.io",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive"
+    ],
+    "websiteURL": "https://comment.io",
+    "privacyPolicyURL": "https://comment.io/privacy",
+    "termsOfServiceURL": "https://comment.io/terms",
+    "defaultPrompt": [
+      "Collaborate in a Comment.io Comm."
+    ],
+    "brandColor": "#7C7BF0",
+    "composerIcon": "./assets/comment-logo.svg",
+    "logo": "./assets/comment-logo.svg",
+    "logoDark": "./assets/comment-logo.svg"
+  }
+}

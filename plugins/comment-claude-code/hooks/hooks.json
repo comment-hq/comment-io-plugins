@@ -1,0 +1,31 @@
+{
+  "description": "Wake and clean up the exact Comment.io listener for this Claude Code session.",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/sh \"${CLAUDE_PLUGIN_ROOT}/hooks/comment-listen-hook\"",
+            "async": true,
+            "asyncRewake": true,
+            "timeout": 86400,
+            "rewakeSummary": "Comment.io mention",
+            "rewakeMessage": "You have a Comment.io notification. Call receive."
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/sh \"${CLAUDE_PLUGIN_ROOT}/hooks/comment-listen-hook\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

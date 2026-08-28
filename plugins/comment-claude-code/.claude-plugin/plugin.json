@@ -1,0 +1,21 @@
+{
+  "name": "comment-io",
+  "version": "2.0.0+sha256.7749f88e304eea635348db6f395a91318fcb711c44f8b4b1f8458c05aa6417c6",
+  "displayName": "Comment.io",
+  "description": "Comment.io collaboration and exact-session listening for Claude Code on macOS and Linux.",
+  "author": {
+    "name": "Comment.io",
+    "email": "hello@comment.io",
+    "url": "https://comment.io"
+  },
+  "homepage": "https://comment.io",
+  "repository": "https://github.com/comment-hq/comment-io-plugins",
+  "license": "MIT",
+  "keywords": [
+    "comment.io",
+    "documents",
+    "collaboration",
+    "mentions"
+  ],
+  "mcpServers": "./.mcp.json"
+}

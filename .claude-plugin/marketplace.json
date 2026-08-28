@@ -1,0 +1,17 @@
+{
+  "name": "comment-io-plugins",
+  "owner": {
+    "name": "Comment.io",
+    "email": "hello@comment.io"
+  },
+  "metadata": {
+    "description": "Official Comment.io plugin"
+  },
+  "plugins": [
+    {
+      "name": "comment-io",
+      "source": "./plugins/comment-claude-code",
+      "description": "Comment.io collaboration for Claude Code on macOS and Linux"
+    }
+  ]
+}

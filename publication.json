@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "channel": "staging",
+  "source": {
+    "ref": "refs/heads/main",
+    "sha": "0feab8629a90159d7d34ea584c36731207ec9b31"
+  },
+  "origin": "https://comt.dev",
+  "hosts": {
+    "codex": {
+      "packagePath": "plugins/comment-codex",
+      "catalogPath": ".agents/plugins/marketplace.json",
+      "version": "1.0.0+sha256.c5879932c46906d346369d50ae2925c20af9ae09c91d5298e9cd053c73e7dcd9",
+      "digest": "sha256:422836edc177b079c5d73adc8a5b4a8f6332563998c9f9f1835ce5c683d6227a"
+    },
+    "claudeCode": {
+      "packagePath": "plugins/comment-claude-code",
+      "catalogPath": ".claude-plugin/marketplace.json",
+      "version": "2.0.0+sha256.7749f88e304eea635348db6f395a91318fcb711c44f8b4b1f8458c05aa6417c6",
+      "digest": "sha256:940b4650adaf8c696b9b07c2aadd3b3d68a9d5bdb8ae21ddb4d034a57fd97dd3"
+    }
+  }
+}
