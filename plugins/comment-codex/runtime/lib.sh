@@ -408,6 +408,12 @@ cio_safe_id() {
   case "$value" in *[!A-Za-z0-9._:-]*) return 1 ;; esac
 }
 
+cio_safe_display_name() {
+  value=$1
+  [ -n "$value" ] && [ "${#value}" -le 100 ] || return 1
+  case "$value" in *[!A-Za-z0-9._\ \(\)-]*) return 1 ;; esac
+}
+
 cio_atomic_append_field() {
   target=$1 key=$2 value=$3
   cio_validate_file "$target" || cio_die UNSAFE_STATE

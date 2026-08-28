@@ -143,6 +143,7 @@ load_stored_identity() {
   stored_credential=$(cio_field "$candidate" credential_id 2>/dev/null || true)
   stored_installation=$(cio_field "$candidate" installation_id 2>/dev/null || true)
   stored_kind=$(cio_field "$candidate" identity_kind 2>/dev/null || true)
+  stored_display_name=$(cio_field "$candidate" display_name 2>/dev/null || true)
   case "$stored_secret" in
     eat_atk_*)
       stored_owner=$(cio_field "$candidate" owner_agent_id 2>/dev/null || true)
@@ -172,8 +173,10 @@ load_stored_identity() {
       ;;
     *) return 1 ;;
   esac
-  CIO_IDENTITY=$candidate CIO_HANDLE=$stored_handle CIO_KIND=$stored_kind CIO_CONVERSATION=$expected_conversation
-  export CIO_IDENTITY CIO_HANDLE CIO_KIND CIO_CONVERSATION
+  [ -n "$stored_display_name" ] || stored_display_name=$stored_handle
+  cio_safe_display_name "$stored_display_name" || return 1
+  CIO_IDENTITY=$candidate CIO_HANDLE=$stored_handle CIO_DISPLAY_NAME=$stored_display_name CIO_KIND=$stored_kind CIO_CONVERSATION=$expected_conversation
+  export CIO_IDENTITY CIO_HANDLE CIO_DISPLAY_NAME CIO_KIND CIO_CONVERSATION
 }
 
 ensure_identity() {
@@ -267,6 +270,7 @@ listen_adopt() {
   token=$(cio_json_string agent_token "$payload")
   agent=$(cio_json_string agent_id "$payload")
   handle=$(cio_json_string handle "$payload")
+  display_name=$(cio_json_string display_name "$payload")
   owner=$(cio_json_string owner_agent_id "$payload")
   grant=$(cio_json_string grant_id "$payload")
   revocation=$(cio_json_number grant_revocation_generation "$payload")
@@ -293,11 +297,14 @@ listen_adopt() {
     dat_*)
       [ -z "$kind" ] && kind=durable
       case "$agent:$handle:$kind" in ag_*:durable) ;; *) cio_die LISTEN_ADOPT_INVALID 64 ;; esac
+      display_name=$handle
       owner= grant= revocation=
       ;;
     *) cio_die LISTEN_ADOPT_INVALID 64 ;;
   esac
   cio_safe_id "$agent" 80 && cio_safe_id "$handle" 128 && cio_safe_id "$token" 256 || cio_die LISTEN_ADOPT_INVALID 64
+  [ -n "$display_name" ] || display_name=$handle
+  cio_safe_display_name "$display_name" || cio_die LISTEN_ADOPT_INVALID 64
   if [ "$kind" = ephemeral ]; then
     cio_safe_id "$owner" 80 && cio_safe_id "$grant" 80 || cio_die LISTEN_ADOPT_INVALID 64
   fi
@@ -314,6 +321,7 @@ listen_adopt() {
     printf 'conversation_hash=%s\n' "$(cio_hash "$conversation")"
     printf 'agent_id=%s\n' "$agent"
     printf 'handle=%s\n' "$handle"
+    printf 'display_name=%s\n' "$display_name"
     printf 'secret=%s\n' "$token"
     printf 'identity_kind=%s\n' "$kind"
     if [ "$kind" = ephemeral ]; then
@@ -324,7 +332,7 @@ listen_adopt() {
   } | cio_atomic_write "$identity"
   cio_unlock "$lock"
   token=
-  printf 'ADOPTED @%s kind=%s\n' "$handle" "$kind"
+  printf 'ADOPTED @%s kind=%s display_name=%s\n' "$handle" "$kind" "$display_name"
 }
 
 listen_bind_work_wake() {
@@ -411,6 +419,7 @@ listen_bind_work_wake() {
     printf 'activation_kind=%s\n' "$kind"
     printf 'activation_agent_id=%s\n' "$agent_id"
     printf 'activation_handle=%s\n' "$handle"
+    printf 'activation_display_name=%s\n' "$CIO_DISPLAY_NAME"
     [ -z "$grant_id" ] || printf 'activation_grant_id=%s\n' "$grant_id"
     [ -z "$owner_agent_id" ] || printf 'activation_owner_agent_id=%s\n' "$owner_agent_id"
     [ -z "$grant_revocation_generation" ] || printf 'activation_grant_revocation_generation=%s\n' "$grant_revocation_generation"
@@ -422,7 +431,7 @@ listen_bind_work_wake() {
   cio_unlock "$binding_lock"
   binding_lock_held=false
   trap - EXIT HUP INT TERM
-  printf 'ARMED @%s generation=%s kind=%s\n' "$handle" "$generation" "$kind"
+  printf 'ARMED @%s generation=%s kind=%s display_name=%s\n' "$handle" "$generation" "$kind" "$CIO_DISPLAY_NAME"
   printf 'activation kind=%s agent_id=%s handle=%s' "$kind" "$agent_id" "$handle"
   [ -z "$grant_id" ] || printf ' grant_id=%s' "$grant_id"
   [ -z "$owner_agent_id" ] || printf ' owner_agent_id=%s' "$owner_agent_id"
@@ -505,8 +514,9 @@ listen_bind() {
     binding_lock_held=false
     trap - EXIT HUP INT TERM
     handle=$(cio_field "$binding" activation_handle 2>/dev/null || true)
+    display_name=$(cio_field "$binding" activation_display_name 2>/dev/null || true)
     kind=$(cio_field "$binding" activation_kind 2>/dev/null || true)
-    printf 'ARMED @%s generation=%s kind=%s\n' "$handle" "$generation" "$kind"
+    printf 'ARMED @%s generation=%s kind=%s display_name=%s\n' "$handle" "$generation" "$kind" "$display_name"
     printf 'activation kind=%s agent_id=%s handle=%s' "$kind" \
       "$(cio_field "$binding" activation_agent_id 2>/dev/null || true)" "$handle"
     grant_id=$(cio_field "$binding" activation_grant_id 2>/dev/null || true)
@@ -616,6 +626,8 @@ listen_status() {
   if ! cio_validate_file "$binding"; then printf '%s\n' STOPPED; return; fi
   identity=$(cio_field "$binding" identity)
   generation=$(cio_field "$binding" binding_generation)
+  display_name=$(cio_field "$identity" display_name 2>/dev/null || true)
+  [ -n "$display_name" ] || display_name=$(cio_field "$identity" handle 2>/dev/null || true)
   if [ "$(cio_field "$binding" delivery_contract 2>/dev/null || true)" = agent_work_wake_v1 ]; then
     request=$(cio_temp_file); response=$(cio_temp_file)
     work_wake_generation_body "$identity" "$generation" | cio_atomic_write "$request"
@@ -625,8 +637,8 @@ listen_status() {
     socket=$(cio_json_string socket "$response")
     /bin/rm -f "$response"
     case "$socket" in
-      connected) printf 'CONNECTED generation=%s\n' "$generation" ;;
-      disconnected) printf 'DISCONNECTED generation=%s\n' "$generation" ;;
+      connected) printf 'CONNECTED generation=%s display_name=%s\n' "$generation" "$display_name" ;;
+      disconnected) printf 'DISCONNECTED generation=%s display_name=%s\n' "$generation" "$display_name" ;;
       *) printf '%s\n' STALE ;;
     esac
     return

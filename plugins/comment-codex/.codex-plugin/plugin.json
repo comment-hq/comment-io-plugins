@@ -1,7 +1,7 @@
 {
   "name": "comment-codex",
-  "version": "1.0.10+sha256.94de8be6eb3e0639e7d69675c5ea5abdc73c16cb5a906779d7f758c25102d13d",
-  "description": "Comment.io collaboration and exact-thread listening for local Codex on macOS and Linux.",
+  "version": "1.0.0+sha256.c774b37c1e6d924bb19a3808308636a572d5a44bc016c2d1143fb33494e06b65",
+  "description": "Comment.io collaboration and exact-thread listening for Codex, including Codex Cloud.",
   "author": {
     "name": "Comment.io",
     "email": "hello@comment.io",
@@ -21,7 +21,7 @@
   "interface": {
     "displayName": "Comment.io",
     "shortDescription": "Collaborate in Comms and wake this exact thread.",
-    "longDescription": "Create and edit Comment.io Comms, connect hosted Comment.io tools, and wake an eligible exact local Codex thread on macOS or Linux.",
+    "longDescription": "Create and edit Comment.io Comms, connect hosted Comment.io tools, and wake an eligible exact Codex thread, including in Codex Cloud.",
     "developerName": "Comment.io",
     "category": "Productivity",
     "capabilities": [

@@ -1,6 +1,6 @@
 {
   "name": "comment-io-claude-code-plugin",
-  "version": "2.0.7+sha256.3396f1807ff79ac1f03cd01dc48fac0907a7dfde5f5e22798ef4761d2a502d95",
+  "version": "2.0.0+sha256.d9a7b7889d82097f3720134baa1fe91b9bcbfabf7ac35f6f8b9d6da36e322810",
   "private": true,
   "license": "MIT"
 }

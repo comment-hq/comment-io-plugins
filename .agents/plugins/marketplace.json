@@ -10,7 +10,7 @@
         "source": "local",
         "path": "./plugins/comment-codex"
       },
-      "description": "Comment.io collaboration for local Codex on macOS and Linux.",
+      "description": "Comment.io collaboration for Codex, including Codex Cloud.",
       "policy": {
         "installation": "AVAILABLE",
         "authentication": "ON_INSTALL"

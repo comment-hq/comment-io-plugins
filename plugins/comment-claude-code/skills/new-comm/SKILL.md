@@ -24,22 +24,31 @@ from which to infer it.
 
 ## 2. Establish the route and identity
 
-Invoke the installed `how-to-use-comment` skill before any Comment.io action. Then invoke
-`listen`; this request authorizes arming the same identity. An unavailable
-listener does not block creation.
+Invoke the installed `how-to-use-comment` skill before any Comment.io action.
+Then invoke `listen`; this request authorizes arming the same identity.
+Keep its setup in this conversation: mint once, complete adoption through
+`ADOPTED`, then start the separate `listen bind` Bash command with
+`run_in_background: true`. Retain the returned background task ID and the exact
+mint data, then immediately continue with source resolution and writing in this
+conversation. Do not wait on the background bind while content work remains.
+An unavailable listener does not block creation.
 
 This step is complete when creation, editing, and listening use one origin and
 one identity policy.
 
-## 3. Resolve the source
+## 3. Resolve the source and write
 
 - Read a supplied file, URL, prior Comm, or other source with an available
   native capability.
 - Otherwise use supplied notes or prior context.
 - Confirm the purpose identified or inferred in step 1 against the resolved
   source.
+- Write the complete Markdown in this conversation. Follow all document and
+  section instructions, preserve requested detail, mark unknowns instead of
+  guessing, and remove accidental empty sections.
 
-This step is complete when the content and purpose are usable.
+This step is complete when the purpose is confirmed and the complete Markdown is
+ready for the single creation call.
 
 ## 4. Create one Comm
 
@@ -54,12 +63,12 @@ creating another one.
 
 ## 5. Fill and hand off
 
-Write from the resolved source and follow all document and section
-instructions. Preserve meaning and requested detail. Mark unknowns instead of
-guessing. Remove accidental empty sections. Turn material placeholders into
-anchored comments that @mention the user with the exact decision or information
-needed.
+Turn material placeholders into anchored comments with `mentions: ["owner"]`,
+`allow_mentions: true`, and a `notify` brief stating the exact decision or
+information needed.
 
-Leave listening armed, report its honest state, and leave the Comm unopened so
-the user can open it. End the final response with the exact human-openable URL
-on its own line; it must be the final line.
+Before handoff, collect any retained bind task with `TaskOutput` and blocking
+enabled. Record `ARMED` on success or treat a failed bind as an unavailable
+listener. Leave listening armed when available and report its honest state.
+Leave the Comm unopened so the user can open it. End the final response with the
+exact human-openable URL on its own line; it must be the final line.
