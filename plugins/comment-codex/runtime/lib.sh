@@ -10,7 +10,7 @@ command -v curl >/dev/null 2>&1 || cio_die CURL_UNAVAILABLE 64
 command -v openssl >/dev/null 2>&1 || cio_die OPENSSL_UNAVAILABLE 64
 
 cio_host=${COMMENT_PLUGIN_HOST:?COMMENT_PLUGIN_HOST is required}
-case "$cio_host" in claude-code|codex) ;; *) cio_die WRONG_HOST 64 ;; esac
+case "$cio_host" in claude-code|codex|openclaw) ;; *) cio_die WRONG_HOST 64 ;; esac
 
 cio_stat_owner() {
   case "$(uname -s)" in
@@ -126,7 +126,12 @@ cio_origin() {
   host=${value#https://}
   [ "$host" != "$value" ] || cio_die INVALID_ORIGIN 64
   case "$host" in ''|*'/'*|*'?'*|*'#'*|*'@'*|*' '*) cio_die INVALID_ORIGIN 64 ;; esac
-  case "$host" in [A-Za-z0-9]*.[A-Za-z0-9]*|localhost:[0-9]*|localhost) ;; *) cio_die INVALID_ORIGIN 64 ;; esac
+  case "$host" in
+    \[*\]|\[*\]:[0-9]*) ;;
+    [0-9]*.[0-9]*.[0-9]*.[0-9]*|[0-9]*.[0-9]*.[0-9]*.[0-9]*:[0-9]*) ;;
+    [A-Za-z0-9]*.[A-Za-z0-9]*|[A-Za-z0-9]*.[A-Za-z0-9]*:[0-9]*|localhost:[0-9]*|localhost) ;;
+    *) cio_die INVALID_ORIGIN 64 ;;
+  esac
   printf '%s\n' "$value"
 }
 
@@ -282,6 +287,7 @@ cio_conversation_id() {
   case "$cio_host" in
     claude-code) value=${CLAUDE_CODE_SESSION_ID:-} ;;
     codex) value=${CODEX_THREAD_ID:-} ;;
+    openclaw) value=${OPENCLAW_COMMENT_IO_CONVERSATION:-} ;;
   esac
   case "$value" in ''|*[!A-Za-z0-9._:-]*) cio_die CONVERSATION_ID_UNAVAILABLE 3 ;; esac
   [ "${#value}" -le 1024 ] || cio_die CONVERSATION_ID_UNAVAILABLE 3
@@ -375,7 +381,7 @@ cio_curl() {
 }
 
 cio_post_json() {
-  credential=$1 origin=$2 path=$3 json=$4 output=$5 idempotency=${6:-}
+  credential=$1 origin=$2 path=$3 json=$4 output=$5 idempotency=${6:-} plugin_claim=${7:-}
   body=$(cio_temp_file)
   printf '%s\n' "$json" | cio_atomic_write "$body"
   if [ -n "$idempotency" ]; then
@@ -385,6 +391,7 @@ cio_post_json() {
       printf '%s\n' 'silent' 'show-error' 'proto = "=https"' 'proto-redir = "=https"' 'max-redirs = 0' 'connect-timeout = 10' 'max-time = 40'
       printf 'header = "Authorization: Bearer %s"\n' "$secret"
       printf 'header = "Idempotency-Key: %s"\n' "$idempotency"
+      [ "$plugin_claim" != v1 ] || printf '%s\n' 'header = "X-Plugin-Session-Claim: v1"'
       printf '%s\n' 'header = "Accept: application/json"' 'header = "Content-Type: application/json"'
     } | cio_atomic_write "$config"
     code=$(curl --config "$config" --request POST --data-binary "@$body" --output "$output" --write-out '%{http_code}' "$origin$path") || { /bin/rm -f "$body" "$config"; return 1; }
@@ -452,6 +459,40 @@ cio_terminal_operation() {
     /bin/cat "$target"
     printf 'terminal_action=%s\nterminal_operation_id=%s\nterminal_request_hash=%s\n' \
       "$action" "$selected" "$signature_hash"
+  } | cio_atomic_write "$temporary"
+  cio_atomic_write "$target" <"$temporary"
+  /bin/rm -f "$temporary"
+  CIO_TERMINAL_OPERATION=$selected
+  export CIO_TERMINAL_OPERATION
+  cio_unlock "$terminal_lock"
+}
+
+cio_terminal_settlement() {
+  target=$1 proposed=$2 signature=$3 outcome=$4 reply=$5 edit=$6
+  cio_validate_file "$target" || cio_die UNSAFE_STATE
+  terminal_lock=$target.terminal-lock
+  cio_lock "$terminal_lock"
+  signature_hash=$(cio_hash "settle:$signature")
+  stored_action=$(cio_field "$target" terminal_action 2>/dev/null || true)
+  stored_operation=$(cio_field "$target" terminal_operation_id 2>/dev/null || true)
+  stored_hash=$(cio_field "$target" terminal_request_hash 2>/dev/null || true)
+  if [ -n "$stored_operation" ]; then
+    [ "$stored_action" = settle ] && [ "$stored_hash" = "$signature_hash" ] || cio_die TERMINAL_RETRY_MISMATCH 64
+    [ -z "$proposed" ] || [ "$proposed" = "$stored_operation" ] || cio_die TERMINAL_RETRY_MISMATCH 64
+    CIO_TERMINAL_OPERATION=$stored_operation
+    export CIO_TERMINAL_OPERATION
+    cio_unlock "$terminal_lock"
+    return
+  fi
+  selected=${proposed:-$(printf 'op_%s' "$(openssl rand -hex 16)")}
+  cio_safe_id "$selected" 128 || cio_die INVALID_OPERATION 64
+  temporary=$(cio_temp_file)
+  {
+    /bin/cat "$target"
+    printf 'recovery_outcome=%s\n' "$outcome"
+    [ -z "$reply" ] || printf 'recovery_reply_operation=%s\n' "$reply"
+    [ -z "$edit" ] || printf 'recovery_edit_operation=%s\n' "$edit"
+    printf 'terminal_action=settle\nterminal_operation_id=%s\nterminal_request_hash=%s\n' "$selected" "$signature_hash"
   } | cio_atomic_write "$temporary"
   cio_atomic_write "$target" <"$temporary"
   /bin/rm -f "$temporary"

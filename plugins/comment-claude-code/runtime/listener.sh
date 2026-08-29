@@ -885,15 +885,35 @@ socket_wait() {
   json=$(printf '{"plugin_session_id":"%s","binding_generation":%s}' "$session" "$generation")
   if ! code=$(cio_post_json "$identity" "$origin" /agents/me/notifications/plugin-session/socket-ticket "$json" "$response"); then /bin/rm -f "$response"; return 75; fi
   if [ "$code" != 201 ]; then
+    error_code=$(cio_json_string code "$response")
     /bin/rm -f "$response"
+    if [ "$code" = 409 ] && [ "$error_code" = ACCOUNT_DELETE_IN_PROGRESS ]; then return 75; fi
     case "$code" in 429|5??) return 75 ;; *) return 1 ;; esac
   fi
   ticket=$(cio_json_string socket_ticket "$response")
   /bin/rm -f "$response"
   case "$ticket" in pst_*) ;; *) return 1 ;; esac
 
-  host=${origin#https://}
-  case "$host" in *:*) connect=$host; server=${host%%:*} ;; *) connect=$host:443; server=$host ;; esac
+  authority=${origin#https://}
+  case "$authority" in
+    \[*\]:*) server=${authority#\[}; server=${server%%\]*}; connect=$authority; host_header=$authority; verify_flag=-verify_ip ;;
+    \[*\]) server=${authority#\[}; server=${server%\]}; connect="[$server]:443"; host_header=$authority; verify_flag=-verify_ip ;;
+    *:*) server=${authority%:*}; connect=$authority; host_header=$authority; verify_flag=-verify_hostname ;;
+    *) server=$authority; connect=$authority:443; host_header=$authority; verify_flag=-verify_hostname ;;
+  esac
+  old_ifs=$IFS
+  IFS=.
+  # shellcheck disable=SC2086
+  set -- $server
+  IFS=$old_ifs
+  if [ "$#" -eq 4 ]; then
+    ipv4=true
+    for octet in "$@"; do
+      case "$octet" in ''|*[!0-9]*) ipv4=false ;; esac
+      [ "$ipv4" = false ] || [ "$octet" -le 255 ] 2>/dev/null || ipv4=false
+    done
+    [ "$ipv4" = false ] || verify_flag=-verify_ip
+  fi
   session_dir=$cio_state/socket-$(cio_hash "$conversation")-$$
   cio_make_private_dir "$session_dir"
   input=$session_dir/in output=$session_dir/out
@@ -902,8 +922,13 @@ socket_wait() {
   # If endpoint loss kills the child before its redirections finish, these
   # keepers prevent the parent from blocking forever while opening fd 3 or 4.
   exec 5<>"$input"; exec 6<>"$output"
-  openssl s_client -quiet -connect "$connect" -servername "$server" \
-    -verify_hostname "$server" -verify_return_error <"$input" >"$output" 2>/dev/null 5>&- 6>&- &
+  if [ "$verify_flag" = -verify_hostname ]; then
+    openssl s_client -quiet -connect "$connect" -servername "$server" \
+      "$verify_flag" "$server" -verify_return_error <"$input" >"$output" 2>/dev/null 5>&- 6>&- &
+  else
+    openssl s_client -quiet -connect "$connect" \
+      "$verify_flag" "$server" -verify_return_error <"$input" >"$output" 2>/dev/null 5>&- 6>&- &
+  fi
   tls_pid=$!
   monitor_pid=
   if [ "$cio_host" = codex ]; then
@@ -940,7 +965,7 @@ socket_wait() {
   expected=$(printf '%s' "${websocket_key}258EAFA5-E914-47DA-95CA-C5AB0DC85B11" | openssl dgst -sha1 -binary | openssl base64 | tr -d '\n')
   request_path="/agents/me/notifications/connect?client=plugin&delivery_contract=plugin_session_v1&plugin_session_id=$session&binding_generation=$generation"
   printf 'GET %s HTTP/1.1\r\nHost: %s\r\nAuthorization: Bearer %s\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: %s\r\nSec-WebSocket-Version: 13\r\n\r\n' \
-    "$request_path" "$server" "$ticket" "$websocket_key" >&3
+    "$request_path" "$host_header" "$ticket" "$websocket_key" >&3
   ticket=
   cr=$(printf '\r')
   if ! IFS= read -r status <&4; then cleanup_socket; trap - EXIT HUP INT TERM; return 75; fi
@@ -1298,7 +1323,7 @@ keep_claim() {
         claim=$(cio_field "$attempt" claim_id)
         cio_safe_id "$claim" 120 || exit 0
         set +e
-        code=$(cio_post_json "$identity" "$origin" "/agents/me/notifications/claim/$claim/renew" "{\"op_id\":\"$op\"}" "$response" "$op")
+        code=$(cio_post_json "$identity" "$origin" "/agents/me/notifications/claim/$claim/renew" "{\"op_id\":\"$op\"}" "$response" "$op" v1)
         request_rc=$?
         set -e
         ;;
@@ -1319,18 +1344,92 @@ keep_claim() {
   done
 }
 
-settle() {
-  requested_outcome=${3:-}
-  op=${4:-}
-  reply=${5:-}
-  edit=${6:-}
-  selected_ids=${7:-}
-  if work_wake_binding; then
-    complete_work "$selected_ids"
-    return
-  fi
+revalidate_current() {
+  load_binding || cio_die NOT_LISTENING 2
+  expected=${4:-}
+  cio_safe_id "$expected" 256 || cio_die USAGE 64
   attempt=$(attempt_file)
   cio_validate_file "$attempt" || cio_die NO_CLAIMED_WORK 2
+  response=$(cio_temp_file)
+  kind=$(cio_field "$attempt" kind)
+  case "$kind" in
+    ordinary)
+      claim=$(cio_field "$attempt" claim_id)
+      [ "$claim" = "$expected" ] || { /bin/rm -f "$response"; cio_die CLAIM_LOST 2; }
+      json=$(printf '{"plugin_session_id":"%s","binding_generation":%s,"claim_id":"%s"}' "$session" "$generation" "$claim")
+      code=$(cio_post_json "$identity" "$origin" /agents/me/notifications/plugin-session/claim/revalidate "$json" "$response") || code=000
+      ;;
+    canonical)
+      locator=$(cio_field "$attempt" locator_id); claimant=$(cio_field "$attempt" claimant_id)
+      [ "$locator" = "$expected" ] || { /bin/rm -f "$response"; cio_die CLAIM_LOST 2; }
+      cio_safe_id "$locator" 80 && cio_safe_id "$claimant" 80 || { /bin/rm -f "$response"; cio_die ATTEMPT_INVALID; }
+      op=$(operation_id)
+      json=$(printf '{"claimant_id":"%s","operation_id":"%s"}' "$claimant" "$op")
+      code=$(cio_post_json "$identity" "$origin" "/agents/me/agent-interactions/$locator/activity" "$json" "$response" "$op") || code=000
+      ;;
+    *) /bin/rm -f "$response"; cio_die ATTEMPT_INVALID ;;
+  esac
+  /bin/rm -f "$response"
+  [ "$code" = 200 ] || cio_die CLAIM_LOST 2
+  binding_current "$session" "$generation" || cio_die CLAIM_LOST 2
+  printf '%s\n' VALID
+}
+
+recover_openclaw() {
+  load_binding || { printf '%s\n' RECOVERED; return; }
+  attempt_lock=$binding.attempt-lock
+  cio_lock "$attempt_lock"
+  trap 'cio_unlock "$attempt_lock" >/dev/null 2>&1 || true' EXIT
+  expected=${3:-}
+  retire_terminal=${4:-false}
+  attempt=$(attempt_file)
+  cio_validate_file "$attempt" || { printf '%s\n' RECOVERED; return; }
+  kind=$(cio_field "$attempt" kind)
+  case "$kind" in
+    ordinary) current=$(cio_field "$attempt" claim_id) ;;
+    canonical) current=$(cio_field "$attempt" locator_id) ;;
+    *) cio_die ATTEMPT_INVALID ;;
+  esac
+  if [ -n "$expected" ] && [ "$current" != "$expected" ]; then
+    printf '%s\n' RECOVERED
+    return
+  fi
+  stored_action=$(cio_field "$attempt" terminal_action 2>/dev/null || true)
+  operation=$(cio_field "$attempt" terminal_operation_id 2>/dev/null || true)
+  set +e
+  if [ "$stored_action" = settle ] && [ -n "$operation" ]; then
+    recovery_outcome=$(cio_field "$attempt" recovery_outcome 2>/dev/null || true)
+    recovery_reply=$(cio_field "$attempt" recovery_reply_operation 2>/dev/null || true)
+    recovery_edit=$(cio_field "$attempt" recovery_edit_operation 2>/dev/null || true)
+    [ -n "$recovery_outcome" ] || recovery_outcome=no_action
+    recovery_output=$(settle recover "$origin" "$recovery_outcome" "$operation" "$recovery_reply" "$recovery_edit" 2>&1)
+    rc=$?
+  else
+    recovery_output=$(release_file "$attempt" 2>&1)
+    rc=$?
+  fi
+  set -e
+  if [ "$rc" -ne 0 ] && [ "$retire_terminal" = true ] \
+    && printf '%s' "$recovery_output" | grep -Eqi 'CLAIM_LOST|PLUGIN_SESSION_STALE|LISTEN_IDENTITY_REJECTED|NOT_LISTENING|NO_CLAIMED_WORK|Invalid token|Unauthorized'; then
+    discard_local_attempt
+    printf '%s\n' RETIRED
+    return
+  fi
+  [ "$rc" -eq 0 ] || printf '%s\n' "$recovery_output" >&2
+  return "$rc"
+}
+
+settle_file() {
+  attempt=$1
+  requested_outcome=$2
+  op=$3
+  reply=$4
+  edit=$5
+  cio_validate_file "$attempt" || cio_die NO_CLAIMED_WORK 2
+  [ "$(cio_field "$attempt" origin)" = "$origin" ] || cio_die ATTEMPT_INVALID
+  attempt_identity=$(cio_field "$attempt" identity 2>/dev/null || true)
+  cio_validate_file "$attempt_identity" || cio_die ATTEMPT_INVALID
+  identity=$attempt_identity
   kind=$(cio_field "$attempt" kind)
   response=$(cio_temp_file)
   case "$kind" in
@@ -1340,9 +1439,9 @@ settle() {
       if [ "$(cio_field "$attempt" submission_settled 2>/dev/null || true)" = delivered ]; then
         code=200
       else
-        cio_terminal_operation "$attempt" settle "$op" "ordinary:$claim"
+        cio_terminal_settlement "$attempt" "$op" "ordinary:$claim" no_action '' ''
         op=$CIO_TERMINAL_OPERATION
-        code=$(cio_post_json "$identity" "$origin" "/agents/me/notifications/claim/$claim/ack" "{\"op_id\":\"$op\"}" "$response" "$op") || cio_die SETTLE_FAILED
+        code=$(cio_post_json "$identity" "$origin" "/agents/me/notifications/claim/$claim/ack" "{\"op_id\":\"$op\"}" "$response" "$op" v1) || cio_die SETTLE_FAILED
       fi
       ;;
     canonical)
@@ -1367,7 +1466,7 @@ settle() {
         no_action) ;;
         *) cio_die INVALID_OUTCOME 64 ;;
       esac
-      cio_terminal_operation "$attempt" settle "$op" "canonical:$locator:$claimant:$requested_outcome:$reply:$edit"
+      cio_terminal_settlement "$attempt" "$op" "canonical:$locator:$claimant:$requested_outcome:$reply:$edit" "$requested_outcome" "$reply" "$edit"
       op=$CIO_TERMINAL_OPERATION
       case "$requested_outcome" in
         replied) json=$(printf '{"claimant_id":"%s","operation_id":"%s","outcome":"replied","reply_operation_id":"%s"}' "$claimant" "$op" "$reply") ;;
@@ -1380,8 +1479,22 @@ settle() {
     *) cio_die ATTEMPT_INVALID ;;
   esac
   [ "$code" = 200 ] || { cio_redact <"$response" >&2; cio_die SETTLE_FAILED; }
+  /bin/rm -f "$response" "$attempt"
+}
+
+settle() {
+  requested_outcome=${3:-}
+  op=${4:-}
+  reply=${5:-}
+  edit=${6:-}
+  selected_ids=${7:-}
+  if work_wake_binding; then
+    complete_work "$selected_ids"
+    return
+  fi
+  settle_file "$(attempt_file)" "$requested_outcome" "$op" "$reply" "$edit"
   stop_keeper
-  /bin/rm -f "$response" "$attempt" "$(payload_file)"
+  /bin/rm -f "$(payload_file)"
   printf '%s\n' SETTLED
 }
 
@@ -1398,13 +1511,22 @@ release_file() (
   trap 'exit 129' HUP
   trap 'exit 130' INT
   trap 'exit 143' TERM
+  terminal_action=$(cio_field "$attempt" terminal_action 2>/dev/null || true)
+  if [ "$terminal_action" = settle ]; then
+    settle_file "$attempt" \
+      "$(cio_field "$attempt" recovery_outcome)" \
+      "$(cio_field "$attempt" terminal_operation_id)" \
+      "$(cio_field "$attempt" recovery_reply_operation 2>/dev/null || true)" \
+      "$(cio_field "$attempt" recovery_edit_operation 2>/dev/null || true)"
+    exit 0
+  fi
   case "$kind" in
     ordinary)
       claim=$(cio_field "$attempt" claim_id)
       cio_safe_id "$claim" 120 || cio_die ATTEMPT_INVALID
       cio_terminal_operation "$attempt" release '' "ordinary:$claim"
       op=$CIO_TERMINAL_OPERATION
-      code=$(cio_post_json "$identity" "$origin" "/agents/me/notifications/claim/$claim/release" "{\"op_id\":\"$op\"}" "$response" "$op") || cio_die RELEASE_FAILED
+      code=$(cio_post_json "$identity" "$origin" "/agents/me/notifications/claim/$claim/release" "{\"op_id\":\"$op\"}" "$response" "$op" v1) || cio_die RELEASE_FAILED
       ;;
     canonical)
       locator=$(cio_field "$attempt" locator_id); claimant=$(cio_field "$attempt" claimant_id)
@@ -1426,7 +1548,20 @@ retry_release_snapshots() {
   for release_snapshot in "$cio_state"/.release."$cio_host"."$origin_key".*; do
     [ -e "$release_snapshot" ] || continue
     cio_validate_file "$release_snapshot" || continue
-    release_file "$release_snapshot" >/dev/null 2>&1 || true
+    release_identity=$(cio_field "$release_snapshot" identity 2>/dev/null || true)
+    release_file "$release_snapshot" >/dev/null 2>&1 || continue
+    if [ "$cio_host" = openclaw ] && cio_validate_file "$release_identity"; then
+      referenced=false
+      for current_binding in "$cio_state"/binding-"$cio_host"-*; do
+        [ -e "$current_binding" ] || continue
+        [ "$(cio_field "$current_binding" identity 2>/dev/null || true)" != "$release_identity" ] || referenced=true
+      done
+      for other_release in "$cio_state"/.release."$cio_host"."$origin_key".*; do
+        [ -e "$other_release" ] || continue
+        [ "$(cio_field "$other_release" identity 2>/dev/null || true)" != "$release_identity" ] || referenced=true
+      done
+      [ "$referenced" = true ] || /bin/rm -f "$release_identity"
+    fi
   done
 }
 
@@ -1761,8 +1896,64 @@ case "$action" in
     exit 0
     ;;
   receive) receive ;;
+  receive-if-current)
+    attempt_lock=$binding.attempt-lock
+    cio_lock "$attempt_lock"
+    trap 'cio_unlock "$attempt_lock" >/dev/null 2>&1 || true' EXIT
+    load_binding || cio_die NOT_LISTENING 2
+    expected=${3:-}
+    cio_safe_id "$expected" 256 || cio_die USAGE 64
+    attempt=$(attempt_file)
+    cio_validate_file "$attempt" || cio_die NO_CLAIMED_WORK 2
+    kind=$(cio_field "$attempt" kind)
+    case "$kind" in
+      ordinary) current=$(cio_field "$attempt" claim_id) ;;
+      canonical) current=$(cio_field "$attempt" locator_id) ;;
+      *) cio_die ATTEMPT_INVALID ;;
+    esac
+    [ "$current" = "$expected" ] || cio_die CLAIM_LOST 2
+    receive
+    ;;
+  recover-openclaw) recover_openclaw "$@" ;;
+  revalidate-current) revalidate_current "$@" ;;
   settle) load_binding || cio_die NOT_LISTENING 2; settle "$@" ;;
+  settle-if-current)
+    attempt_lock=$binding.attempt-lock
+    cio_lock "$attempt_lock"
+    trap 'cio_unlock "$attempt_lock" >/dev/null 2>&1 || true' EXIT
+    load_binding || exit 0
+    expected=${8:-}
+    cio_safe_id "$expected" 256 || cio_die USAGE 64
+    attempt=$(attempt_file)
+    cio_validate_file "$attempt" || exit 0
+    kind=$(cio_field "$attempt" kind)
+    case "$kind" in
+      ordinary) current=$(cio_field "$attempt" claim_id) ;;
+      canonical) current=$(cio_field "$attempt" locator_id) ;;
+      *) exit 0 ;;
+    esac
+    [ "$current" = "$expected" ] || exit 0
+    settle "$@"
+    ;;
   release) load_binding || cio_die NOT_LISTENING 2; release ;;
+  release-if-current)
+    attempt_lock=$binding.attempt-lock
+    cio_lock "$attempt_lock"
+    trap 'cio_unlock "$attempt_lock" >/dev/null 2>&1 || true' EXIT
+    load_binding || exit 0
+    expected=${4:-}
+    cio_safe_id "$expected" 256 || cio_die USAGE 64
+    attempt=$(attempt_file)
+    cio_validate_file "$attempt" || exit 0
+    kind=$(cio_field "$attempt" kind)
+    case "$kind" in
+      ordinary) current=$(cio_field "$attempt" claim_id) ;;
+      canonical) current=$(cio_field "$attempt" locator_id) ;;
+      *) exit 0 ;;
+    esac
+    [ "$current" = "$expected" ] || exit 0
+    release
+    ;;
   local-stop) local_stop ;;
   keep) keep_claim ;;
   release-snapshot)
@@ -1776,5 +1967,20 @@ case "$action" in
   codex-preflight-probe) codex_preflight_probe ;;
   codex-listener-state) codex_listener_state ;;
   codex-wait) codex_wait ;;
+  openclaw-wait)
+    retry_release_snapshots
+    load_binding || exit 1
+    while binding_current "$session" "$generation"; do
+      if cio_validate_file "$(attempt_file)"; then
+        /bin/sleep 2
+        continue
+      fi
+      set +e; socket_wait; socket_rc=$?; set -e
+      if [ "$socket_rc" -eq 0 ]; then printf '%s\n' WAKE; exit 0; fi
+      [ "$socket_rc" -eq 75 ] || exit "$socket_rc"
+      /bin/sleep 2
+    done
+    exit 1
+    ;;
   *) cio_die USAGE 64 ;;
 esac

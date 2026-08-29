@@ -1,6 +1,6 @@
 {
   "name": "comment-codex",
-  "version": "1.0.0+sha256.c5879932c46906d346369d50ae2925c20af9ae09c91d5298e9cd053c73e7dcd9",
+  "version": "1.0.0+sha256.1b0d82af9209a05aefd5c8e2cd567a087714fab2a56b9e40fefba194cd67d5e5",
   "description": "Comment.io collaboration and exact-thread listening for Codex, including Codex Cloud.",
   "author": {
     "name": "Comment.io",
