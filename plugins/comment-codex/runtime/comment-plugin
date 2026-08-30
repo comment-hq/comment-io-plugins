@@ -19,6 +19,8 @@ operation=
 reply_operation=
 edit_operation=
 work_item_ids=
+expected_claim=
+retire_terminal=false
 
 command=${1:-}
 [ -n "$command" ] || cio_die USAGE 64
@@ -38,6 +40,8 @@ while [ "$#" -gt 0 ]; do
     --reply-operation) [ "$#" -ge 2 ] || cio_die USAGE 64; reply_operation=$2; shift 2 ;;
     --edit-operation) [ "$#" -ge 2 ] || cio_die USAGE 64; edit_operation=$2; shift 2 ;;
     --work-item-ids) [ "$#" -ge 2 ] || cio_die USAGE 64; work_item_ids=$2; shift 2 ;;
+    --expected-claim) [ "$#" -ge 2 ] || cio_die USAGE 64; expected_claim=$2; shift 2 ;;
+    --retire-terminal) retire_terminal=true; shift ;;
     *) cio_die USAGE 64 ;;
   esac
 done
@@ -49,7 +53,7 @@ origin_explicit=true
 
 if [ "$origin_explicit" = false ]; then
   case "$command:$subcommand" in
-    hook:|listen:status|listen:stop|receive:|settle:|release:)
+    hook:|listen:status|listen:stop|receive:|recover:|revalidate:|settle:|release:)
       discovered=$(cio_discover_conversation_origin 2>/dev/null || true)
       if [ -n "${discovered:-}" ]; then
         origin=$discovered
@@ -310,10 +314,17 @@ listen_adopt() {
   fi
   identity=$(cio_listen_identity_file "$origin" "$conversation")
   binding=$(cio_binding_file "$origin" "$conversation")
-  if cio_validate_file "$binding" \
-    && [ "$(cio_field "$binding" delivery_contract 2>/dev/null || true)" = agent_work_wake_v1 ]; then
-    listen_stop
+  if cio_validate_file "$binding"; then
+    old_identity=$(cio_field "$binding" identity 2>/dev/null || true)
+    old_secret=$(cio_field "$old_identity" secret 2>/dev/null || true)
+    if [ "$old_secret" != "$token" ]; then
+      listen_stop
+    elif [ "$(cio_field "$binding" delivery_contract 2>/dev/null || true)" = agent_work_wake_v1 ]; then
+      listen_stop
+    fi
   fi
+  identity=$(cio_listen_identity_file "$origin" "$conversation")
+  binding=$(cio_binding_file "$origin" "$conversation")
   lock=$identity.lock
   cio_lock "$lock"
   {
@@ -528,7 +539,15 @@ listen_bind() {
     printf '\n'
     return
   fi
-  ensure_identity
+  if [ "$cio_host" = openclaw ]; then
+    conversation=$(cio_conversation_id)
+    adopted_identity=$(cio_listen_identity_file "$origin" "$conversation")
+    load_stored_identity "$adopted_identity" "$conversation" || cio_die LISTEN_ADOPT_REQUIRED 2
+    adopted_secret=$(cio_field "$CIO_IDENTITY" secret 2>/dev/null || true)
+    case "$adopted_secret" in dat_*) ;; *) cio_die LISTEN_ADOPT_REQUIRED 2 ;; esac
+  else
+    ensure_identity
+  fi
   "$runtime_dir/listener.sh" retry-releases "$origin" >/dev/null 2>&1 || true
   binding=$(cio_binding_file "$origin" "$CIO_CONVERSATION")
   binding_lock=$binding.bind-lock
@@ -591,7 +610,7 @@ listen_bind() {
     cio_die LISTEN_BIND_FAILED
   }
   /bin/rm -f "$request"
-  [ "$code" = 201 ] || { cio_redact <"$response" >&2; /bin/rm -f "$response"; cio_die LISTEN_BIND_FAILED; }
+  [ "$code" = 201 ] || { cio_redact <"$response" >&2; /bin/rm -f "$response"; cio_die "LISTEN_BIND_FAILED HTTP_$code"; }
   session=$(cio_json_string plugin_session_id "$response")
   generation=$(cio_json_number binding_generation "$response")
   state=$(cio_json_string state "$response")
@@ -703,7 +722,7 @@ stop_remote_plugin_session() {
   stop_code=000
   stop_code=$(cio_curl "$stop_identity" POST "$origin" /agents/me/notifications/plugin-session/stop "$stop_request" "$stop_response") || stop_code=000
   /bin/rm -f "$stop_request" "$stop_response"
-  case "$stop_code" in 200|404|409) return 0 ;; *) return 1 ;; esac
+  case "$stop_code" in 200|401|404|409) return 0 ;; *) return 1 ;; esac
 }
 
 listen_stop() {
@@ -725,6 +744,10 @@ listen_stop() {
   cio_lock "$binding_lock"
   binding_lock_held=true
   if ! cio_validate_file "$binding"; then
+    if [ "$cio_host" = openclaw ]; then
+      adopted=$(cio_listen_identity_file "$origin" "$conversation")
+      cio_validate_file "$adopted" && /bin/rm -f "$adopted"
+    fi
     /bin/rm -f "$binding.attempt" "$binding.payload" "$binding.keeper" "$binding.pid" "$binding.pickup" "$binding.identity"
     cio_unlock "$binding_lock"; binding_lock_held=false; trap - EXIT HUP INT TERM
     printf '%s\n' STOPPED
@@ -771,8 +794,18 @@ listen_stop() {
     "$runtime_dir/listener.sh" release-snapshot "$origin" "" "$release_snapshot" >/dev/null 2>&1 || true
   fi
   /bin/rm -f "$binding.attempt" "$binding.payload" "$binding.keeper" "$binding.pid" "$binding.pickup"
-  stop_remote_plugin_session "$identity" "$session" "$generation" || cio_die LISTEN_STOP_FAILED
+  if ! stop_remote_plugin_session "$identity" "$session" "$generation"; then
+    cio_die LISTEN_STOP_FAILED
+  fi
   /bin/rm -f "$binding"
+  if [ "$cio_host" = openclaw ]; then
+    identity_in_release=false
+    for pending_release in "$cio_state"/.release."$cio_host"."$(cio_origin_key "$origin")".*; do
+      [ -e "$pending_release" ] || continue
+      [ "$(cio_field "$pending_release" identity 2>/dev/null || true)" != "$identity" ] || identity_in_release=true
+    done
+    [ "$identity_in_release" = true ] || /bin/rm -f "$identity"
+  fi
   cio_unlock "$binding_lock"
   binding_lock_held=false
   trap - EXIT HUP INT TERM
@@ -875,9 +908,29 @@ EOF
     listen_stop
     ;;
   listen:choose-handle) choose_handle ;;
-  receive:) cio_host_receive "$origin" ;;
-  settle:) cio_host_settle "$origin" "$outcome" "$operation" "$reply_operation" "$edit_operation" "$work_item_ids" ;;
-  release:) cio_host_release "$origin" ;;
+  receive:)
+    if [ -n "$expected_claim" ]; then
+      "$runtime_dir/listener.sh" receive-if-current "$origin" "$expected_claim"
+    else
+      cio_host_receive "$origin"
+    fi
+    ;;
+  recover:) "$runtime_dir/listener.sh" recover-openclaw "$origin" "$expected_claim" "$retire_terminal" ;;
+  revalidate:) "$runtime_dir/listener.sh" revalidate-current "$origin" "" "$expected_claim" ;;
+  settle:)
+    if [ -n "$expected_claim" ]; then
+      "$runtime_dir/listener.sh" settle-if-current "$origin" "$outcome" "$operation" "$reply_operation" "$edit_operation" "$work_item_ids" "$expected_claim"
+    else
+      cio_host_settle "$origin" "$outcome" "$operation" "$reply_operation" "$edit_operation" "$work_item_ids"
+    fi
+    ;;
+  release:)
+    if [ -n "$expected_claim" ]; then
+      "$runtime_dir/listener.sh" release-if-current "$origin" "" "$expected_claim"
+    else
+      cio_host_release "$origin"
+    fi
+    ;;
   hook:) cio_host_hook "$origin" ;;
   *) cio_die USAGE 64 ;;
 esac

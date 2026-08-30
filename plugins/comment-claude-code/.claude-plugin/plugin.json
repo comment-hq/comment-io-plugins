@@ -1,6 +1,6 @@
 {
   "name": "comment-io",
-  "version": "2.0.0+sha256.d9a7b7889d82097f3720134baa1fe91b9bcbfabf7ac35f6f8b9d6da36e322810",
+  "version": "2.0.0+sha256.0f45c75438acb6d7b8f8b8ca882439dcdc6a6e6f5db0fd24ea131ef388b96526",
   "displayName": "Comment.io",
   "description": "Comment.io collaboration and exact-session listening for Claude Code on macOS and Linux.",
   "author": {
