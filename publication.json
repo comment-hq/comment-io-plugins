@@ -3,7 +3,7 @@
   "channel": "production",
   "source": {
     "ref": "refs/heads/production",
-    "sha": "3707b4337554ded9e3aa8d10a80f619b9e56033e"
+    "sha": "436f04d618b7d733e74adead96b3790ef395bb2b"
   },
   "origin": "https://comment.io",
   "hosts": {
