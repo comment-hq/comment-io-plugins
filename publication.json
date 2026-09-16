@@ -3,7 +3,7 @@
   "channel": "staging",
   "source": {
     "ref": "refs/heads/main",
-    "sha": "b81d5d49ea896e51ba02ba4e60723340e020f851"
+    "sha": "7f5179cf606cc7a83154c35ba43e6fe0d60b73f9"
   },
   "origin": "https://comt.dev",
   "hosts": {
