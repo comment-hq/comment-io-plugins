@@ -3,21 +3,21 @@
   "channel": "staging",
   "source": {
     "ref": "refs/heads/main",
-    "sha": "9e010f940cc6cecd838e4c0763ea580080b15f79"
+    "sha": "2930cba4821cb4232776b18e7305b1b71dc3adde"
   },
   "origin": "https://comt.dev",
   "hosts": {
     "codex": {
       "packagePath": "plugins/comment-codex",
       "catalogPath": ".agents/plugins/marketplace.json",
-      "version": "1.0.0+sha256.1b0d82af9209a05aefd5c8e2cd567a087714fab2a56b9e40fefba194cd67d5e5",
-      "digest": "sha256:68f537e29942fe7da7880136551cdbdcaf9aaa8150c9b8bef9029592b2a72328"
+      "version": "1.0.0+sha256.f521f94be92354ee9209d23415c8599d5d4732ee3350902dd4b20bff0bfc9ff4",
+      "digest": "sha256:8e05933f5f10781c2bed6088721d06c34004821e9533d0929ec802438cae4073"
     },
     "claudeCode": {
       "packagePath": "plugins/comment-claude-code",
       "catalogPath": ".claude-plugin/marketplace.json",
-      "version": "2.0.0+sha256.87097d32dc734c450e4402a29726dda5186862ac60a9a9f46990759ca4ac7211",
-      "digest": "sha256:99c786ec1add15e1e2d6e396644c07c4a818239282b5a3d5dabd393f925f32dc"
+      "version": "2.0.0+sha256.77835e9945b30fa33c9c325adbfa1c63d404a690ef3cf4e4b033a3465ac08552",
+      "digest": "sha256:1914dfe9d2d180b37ac18e3980e904ffc1916eaa9f92353358c9c6ed8f855857"
     }
   }
 }
