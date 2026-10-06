@@ -25,7 +25,7 @@ Do not inspect plugin state.
 Do not run `identity` or `listen bind` as a substitute.
 
 1. Resolve the exact production HTTPS origin as the `how-to-use-comment` skill does. With
-   no target context, use `https://comment.io`.
+   no target context, use `https://alpha.comment.io`.
 2. Describe the work this conversation is doing with a concise 1-3 word `task`.
    Choose a fun one-word `name` that alliterates with that task. For example,
    use `task: "Architecture Review"` and `name: "Archie"`. Call
@@ -62,9 +62,9 @@ Speak like a chat status. Use the comm title and the link the tool returns.
 Examples:
 - Listening as Archie (Architecture Review)
 - Replied on Testing notifications
-  https://comment.io/d/ca0eab1d486055703b687e8af2e09023e?focus=comment-51f2ce2d-9aaf-46b1-8f6b-ee2942d69b93
+  https://alpha.comment.io/d/ca0eab1d486055703b687e8af2e09023e?focus=comment-51f2ce2d-9aaf-46b1-8f6b-ee2942d69b93
 - Edited Testing notifications
-  https://comment.io/d/ca0eab1d486055703b687e8af2e09023e
+  https://alpha.comment.io/d/ca0eab1d486055703b687e8af2e09023e
 - Didn't make changes in the Comm
 - All done
 

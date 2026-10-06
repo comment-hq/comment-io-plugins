@@ -7,8 +7,8 @@ runtime_dir=$(CDPATH='' cd "$(dirname "$0")" && /bin/pwd -P)
 . "$runtime_dir/host.sh"
 . "$runtime_dir/lib.sh"
 
-origin=https://comment.io
-fixed_origin=https://comment.io
+origin=https://alpha.comment.io
+fixed_origin=https://alpha.comment.io
 origin_explicit=false
 method=
 path=

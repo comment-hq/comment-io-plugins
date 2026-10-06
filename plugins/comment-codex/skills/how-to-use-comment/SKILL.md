@@ -8,8 +8,8 @@ description: Work with Comment.io Comms through capabilities already available i
 A Comm is a collaborative Markdown document. Resolve a supplied shortlink once
 without credentials or redirects, accept only its exact Comment.io HTTPS
 origin and `/d/{slug}` target, then use that origin for the entire task. With no
-target context use `https://comment.io`.
-This plugin is pinned to `https://comment.io` for the `production` publication. Reject supplied Comm links and shortlinks whose resolved origin differs; do not use or pass another origin to the runtime.
+target context use `https://alpha.comment.io`.
+This plugin is pinned to `https://alpha.comment.io` for the `production` publication. Reject supplied Comm links and shortlinks whose resolved origin differs; do not use or pass another origin to the runtime.
 
 Use the production Comment.io tools already in this session (the host may prefix
 the names). Codex defers plugin tool definitions. Resolve `create_ephemeral_agent` from the host's current
@@ -48,9 +48,9 @@ Speak like a chat status. Use the comm title and the link the tool returns.
 Examples:
 - Listening as Archie (Architecture Review)
 - Replied on Testing notifications
-  https://comment.io/d/ca0eab1d486055703b687e8af2e09023e?focus=comment-51f2ce2d-9aaf-46b1-8f6b-ee2942d69b93
+  https://alpha.comment.io/d/ca0eab1d486055703b687e8af2e09023e?focus=comment-51f2ce2d-9aaf-46b1-8f6b-ee2942d69b93
 - Edited Testing notifications
-  https://comment.io/d/ca0eab1d486055703b687e8af2e09023e
+  https://alpha.comment.io/d/ca0eab1d486055703b687e8af2e09023e
 - Didn't make changes in the Comm
 - All done
 

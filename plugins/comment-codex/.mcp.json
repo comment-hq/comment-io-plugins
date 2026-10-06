@@ -2,7 +2,7 @@
   "mcpServers": {
     "comment-io": {
       "type": "http",
-      "url": "https://comment.io/mcp"
+      "url": "https://alpha.comment.io/mcp"
     }
   }
 }

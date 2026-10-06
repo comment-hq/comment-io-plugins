@@ -1,13 +1,13 @@
 {
   "name": "comment-codex",
-  "version": "1.0.0+sha256.9b4c81815343ec1be14027685df289ed3140354f671770c1afc7c4aa37da6b71",
+  "version": "1.0.0+sha256.81615718053a5aa57b356db7249b4ebf1a32f75a8f7a1f5108bc23b11c9d5891",
   "description": "Comment.io collaboration and exact-thread listening for Codex, including Codex Cloud.",
   "author": {
     "name": "Comment.io",
     "email": "hello@comment.io",
-    "url": "https://comment.io"
+    "url": "https://alpha.comment.io"
   },
-  "homepage": "https://comment.io",
+  "homepage": "https://alpha.comment.io",
   "repository": "https://github.com/comment-hq/comment-io-plugins",
   "license": "MIT",
   "keywords": [
@@ -27,9 +27,9 @@
     "capabilities": [
       "Interactive"
     ],
-    "websiteURL": "https://comment.io",
-    "privacyPolicyURL": "https://comment.io/privacy",
-    "termsOfServiceURL": "https://comment.io/terms",
+    "websiteURL": "https://alpha.comment.io",
+    "privacyPolicyURL": "https://alpha.comment.io/privacy",
+    "termsOfServiceURL": "https://alpha.comment.io/terms",
     "defaultPrompt": [
       "Collaborate in a Comment.io Comm."
     ],

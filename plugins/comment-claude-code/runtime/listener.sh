@@ -9,7 +9,7 @@ runtime_dir=$listener_dir
 . "$listener_dir/lib.sh"
 
 action=${1:-}
-origin=$(cio_origin "${2:-https://comment.io}")
+origin=$(cio_origin "${2:-https://alpha.comment.io}")
 owner_nonce=${3:-}
 conversation=$(cio_conversation_id)
 binding=$(cio_binding_file "$origin" "$conversation")

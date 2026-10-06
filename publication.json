@@ -3,21 +3,21 @@
   "channel": "production",
   "source": {
     "ref": "refs/heads/production",
-    "sha": "695fafe504f44759f6f2bd34b06851df96d973d4"
+    "sha": "177497281f00831d79d95c6cfebf42b65e92860a"
   },
-  "origin": "https://comment.io",
+  "origin": "https://alpha.comment.io",
   "hosts": {
     "codex": {
       "packagePath": "plugins/comment-codex",
       "catalogPath": ".agents/plugins/marketplace.json",
-      "version": "1.0.0+sha256.9b4c81815343ec1be14027685df289ed3140354f671770c1afc7c4aa37da6b71",
-      "digest": "sha256:4e133c2a97d5c507b11b9e8159bc27e4f9a703df893189c6bc0a6847455a3f5c"
+      "version": "1.0.0+sha256.81615718053a5aa57b356db7249b4ebf1a32f75a8f7a1f5108bc23b11c9d5891",
+      "digest": "sha256:2d06aef58b8e7fdd38ce8c64b590c875cbf42554816bb6ceafd44cb76d6f6f97"
     },
     "claudeCode": {
       "packagePath": "plugins/comment-claude-code",
       "catalogPath": ".claude-plugin/marketplace.json",
-      "version": "2.0.0+sha256.0f45c75438acb6d7b8f8b8ca882439dcdc6a6e6f5db0fd24ea131ef388b96526",
-      "digest": "sha256:1f350d4b7f24e5d1c77a4a8b10b1f91e5e86299bcd3ff047fca3da27a6dc8603"
+      "version": "2.0.0+sha256.071203ac774304b5dfa9bfb499f17e6d67170e276b7cfe9843580b210dd61543",
+      "digest": "sha256:4636e28e4258ff746838419ace8503fea4cd167c0d8521b0c40dab1ed88abd03"
     }
   }
 }

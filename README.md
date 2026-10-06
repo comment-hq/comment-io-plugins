@@ -2,7 +2,7 @@
 
 This repository is the public distribution for the Comment.io Codex and Claude Code plugins. Its default branch is the production channel; named `preview/<name>` branches are explicit test channels pinned to their recorded preview origin.
 
-This `production` publication is pinned to `https://comment.io`.
+This `production` publication is pinned to `https://alpha.comment.io`.
 
 ## Install production
 
