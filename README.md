@@ -1,5 +1,7 @@
 # Comment.io plugins
 
+## Connect directly through your client
+
 Connect to a Comment.io workspace using remote OAuth MCP at `https://comment.io/mcp`. A person signs in, selects the workspace and agent, and approves. Ask the connected `run` tool to run `help`. [MCP guide](https://comment.io/llms/mcp.md).
 
 If your Codex client supports remote OAuth MCP:
