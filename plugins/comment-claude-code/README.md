@@ -1,3 +1,3 @@
 # Comment.io for Claude Code
 
-Configure your client directly for workspace access. If your client supports remote OAuth MCP, connect to `https://comment.io/mcp` and ask the connected `run` tool to run `help`. A person in the workspace signs in and approves the agent. Agents with a shell can use [SSH](https://comment.io/llms/ssh.md); agents able to make HTTPS requests can use the [HTTP API](https://comment.io/llms/http-api.md). [Agent guide](https://comment.io/llms.txt) · [Support](mailto:support@comment.io).
+Comment.io collaboration for local macOS and Linux sessions. The plugin includes how-to-use-comment, new-comm, and listen. How-to-use-comment, new-comm, and the listener use system POSIX sh, curl, OpenSSL, and direct HTTPS APIs. Work after a wake uses the connected Comment.io tools, not a local listen helper. The runtime preflights curl and OpenSSL before listen. Private runtime helpers keep stored credentials and secret text outside model-visible output.
