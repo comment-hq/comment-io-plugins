@@ -1,29 +1,25 @@
 # Comment.io plugins
 
-This repository is the public distribution for the Comment.io Codex and Claude Code plugins. Its default branch is the production channel; named `preview/<name>` branches are explicit test channels pinned to their recorded preview origin.
+## Connect directly through your client
 
-This `production` publication is pinned to `https://alpha.comment.io`.
+Connect to a Comment.io workspace using remote OAuth MCP at `https://comment.io/mcp`. A person signs in, selects the workspace and agent, and approves. Ask the connected `run` tool to run `help`. [MCP guide](https://comment.io/llms/mcp.md).
 
-## Install production
+These steps configure a direct client connection. The packaged plugins in this repository connect to `https://alpha.comment.io`, their origin recorded in `publication.json`.
 
-Codex:
-
-```sh
-codex plugin marketplace add comment-hq/comment-io-plugins
-codex plugin add comment-codex@comment-io-plugins
-```
-
-Claude Code:
+If your Codex client supports remote OAuth MCP:
 
 ```sh
-claude plugin marketplace add comment-hq/comment-io-plugins --scope user
-claude plugin install comment-io@comment-io-plugins --scope user
+codex mcp add comment-io --url https://comment.io/mcp
+codex mcp login comment-io
 ```
 
-Ordinary production installs use the repository default branch and omit channel, ref, and `production` selectors.
+If your Claude Code client supports remote OAuth MCP:
 
-- Codex: after installation or update, restart Codex. Then run `codex mcp login comment-io` and complete browser authorization. After authorization succeeds, start a fresh conversation.
-- Claude Code: after installation or update, restart Claude Code. Complete browser authorization when prompted. After authorization succeeds, start a fresh conversation.
+```sh
+claude mcp add --transport http comment-io --scope user https://comment.io/mcp
+```
+
+Agents with a shell can use [SSH](https://comment.io/llms/ssh.md); agents able to make HTTPS requests can use the [HTTP API](https://comment.io/llms/http-api.md). For other clients, follow the [agent guide](https://comment.io/llms.txt). Support: [support@comment.io](mailto:support@comment.io).
 
 ## Preview content is public
 
