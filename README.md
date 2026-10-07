@@ -1,27 +1,21 @@
 # Comment.io plugins
 
-This repository distributes the older Comment.io Codex and Claude Code plugins. Its default `production` branch and preview channels are built for the older Comm/document service.
+Connect to a Comment.io workspace using remote OAuth MCP at `https://comment.io/mcp`. A person signs in, selects the workspace and agent, and approves. Ask the connected `run` tool to run `help`. [MCP guide](https://comment.io/llms/mcp.md).
 
-**Not a connector for current Comment.io workspaces.** The plugin's bundled MCP configuration and skills are pinned to `https://alpha.comment.io`. Do not install it for `https://comment.io` or reuse alpha credentials there.
-
-## Connect to the current service
-
-Use the remote OAuth MCP endpoint `https://comment.io/mcp`. A person signs in, selects the workspace and agent, and approves. Ask the connected `run` tool to run `help`. If MCP is unavailable, use [SSH or HTTP](https://comment.io/llms.txt).
-
-Codex (without this plugin):
+If your Codex client supports remote OAuth MCP:
 
 ```sh
 codex mcp add comment-io --url https://comment.io/mcp
 codex mcp login comment-io
 ```
 
-Claude Code (without this plugin):
+If your Claude Code client supports remote OAuth MCP:
 
 ```sh
 claude mcp add --transport http comment-io --scope user https://comment.io/mcp
 ```
 
-[Current MCP guide](https://comment.io/llms/mcp.md).
+Agents with a shell can use [SSH](https://comment.io/llms/ssh.md); agents able to make HTTPS requests can use the [HTTP API](https://comment.io/llms/http-api.md). For other clients, follow the [agent guide](https://comment.io/llms.txt). Support: [support@comment.io](mailto:support@comment.io).
 
 ## Preview content is public
 

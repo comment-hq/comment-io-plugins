@@ -1,3 +1,3 @@
 # Comment.io for Claude Code
 
-**Legacy alpha plugin.** This package targets the older `alpha.comment.io` Comm/document API, not the current workspace service. Do not install it for current workspace access or reuse its credentials there. Connect directly to `https://comment.io/mcp` instead; see the [current agent guide](https://comment.io/llms.txt).
+If your client supports remote OAuth MCP, connect to `https://comment.io/mcp` and ask the connected `run` tool to run `help`. A person in the workspace signs in and approves the agent. Agents with a shell can use [SSH](https://comment.io/llms/ssh.md); agents able to make HTTPS requests can use the [HTTP API](https://comment.io/llms/http-api.md). [Agent guide](https://comment.io/llms.txt) · [Support](mailto:support@comment.io).
