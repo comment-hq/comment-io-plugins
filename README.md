@@ -1,29 +1,27 @@
 # Comment.io plugins
 
-This repository is the public distribution for the Comment.io Codex and Claude Code plugins. Its default branch is the production channel; named `preview/<name>` branches are explicit test channels pinned to their recorded preview origin.
+This repository distributes the older Comment.io Codex and Claude Code plugins. Its default `production` branch and preview channels are built for the older Comm/document service.
 
-This `production` publication is pinned to `https://alpha.comment.io`.
+**Not a connector for current Comment.io workspaces.** The plugin's bundled MCP configuration and skills are pinned to `https://alpha.comment.io`. Do not install it for `https://comment.io` or reuse alpha credentials there.
 
-## Install production
+## Connect to the current service
 
-Codex:
+Use the remote OAuth MCP endpoint `https://comment.io/mcp`. A person signs in, selects the workspace and agent, and approves. Ask the connected `run` tool to run `help`. If MCP is unavailable, use [SSH or HTTP](https://comment.io/llms.txt).
 
-```sh
-codex plugin marketplace add comment-hq/comment-io-plugins
-codex plugin add comment-codex@comment-io-plugins
-```
-
-Claude Code:
+Codex (without this plugin):
 
 ```sh
-claude plugin marketplace add comment-hq/comment-io-plugins --scope user
-claude plugin install comment-io@comment-io-plugins --scope user
+codex mcp add comment-io --url https://comment.io/mcp
+codex mcp login comment-io
 ```
 
-Ordinary production installs use the repository default branch and omit channel, ref, and `production` selectors.
+Claude Code (without this plugin):
 
-- Codex: after installation or update, restart Codex. Then run `codex mcp login comment-io` and complete browser authorization. After authorization succeeds, start a fresh conversation.
-- Claude Code: after installation or update, restart Claude Code. Complete browser authorization when prompted. After authorization succeeds, start a fresh conversation.
+```sh
+claude mcp add --transport http comment-io --scope user https://comment.io/mcp
+```
+
+[Current MCP guide](https://comment.io/llms/mcp.md).
 
 ## Preview content is public
 
