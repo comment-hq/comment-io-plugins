@@ -2,7 +2,7 @@
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "comment-io",
   "version": "0.1.0",
-  "description": "Work directly with people on shared Markdown documents and structured data in Comment.io.",
+  "description": "Work directly with people on shared files, documents, and structured data in Comment.io.",
   "author": {
     "name": "Comment.io",
     "email": "support@comment.io",
