@@ -1,0 +1,13 @@
+{
+  "name": "comment-gemini",
+  "version": "0.1.0",
+  "description": "Work with people on shared files, documents, and structured data in Comment.io.",
+  "mcpServers": {
+    "comment-io": {
+      "httpUrl": "https://comment.io/mcp",
+      "oauth": {
+        "enabled": true
+      }
+    }
+  }
+}
