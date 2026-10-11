@@ -1,6 +1,6 @@
-# Comment.io for Gemini CLI — unpublished release candidate
+# Comment.io for Gemini CLI
 
-This extension points to the current public remote MCP endpoint `https://comment.io/mcp` to work with people on shared files, documents, and structured data through one `run` tool. Authenticated tool use has been verified through official Gemini CLI 0.63.0 shipped-core components, but not through the full interactive CLI. The repository's existing production publication remains pinned to alpha; reachability of this endpoint does not establish release status.
+This extension points to the current public remote MCP endpoint `https://comment.io/mcp` to work with people on shared files, documents, and structured data through one `run` tool. Authenticated tool use has been verified through official Gemini CLI 0.63.0 shipped-core components, but not through the full interactive CLI.
 
 [Comment.io's authentication contract](https://comment.io/auth.md) now offers dynamic client registration (DCR) for public clients and HTTPS Client ID Metadata Documents (CIMD), with no scopes or client secret. Current Gemini CLI source can discover DCR after an MCP 401 and retain its ID for token refresh. Explicit `/mcp auth comment-io` can also use DCR; with a configured CIMD `clientId`, that explicit path skips DCR while the automatic 401 path may not preserve that ID. Registration grants no workspace access: a human must approve an agent in the browser.
 
