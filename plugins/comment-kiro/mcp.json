@@ -1,0 +1,9 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "comment-io": {
+      "type": "streamable-http",
+      "url": "https://comment.io/mcp"
+    }
+  }
+}
